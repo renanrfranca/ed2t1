@@ -103,30 +103,39 @@ char ARQUIVO[TAM_ARQUIVO];
  * ========================= PROTÓTIPOS DAS FUNÇÕES =========================
  * ========================================================================== */
 
+// ======================= ROTINAS DE INICIALIZAÇÃO =========================
+
 /* Recebe do usuário uma string simulando o arquivo completo e retorna o número
  * de registros. */
 int carregar_arquivo();
 
-/* Exibe o Produto */
-int exibir_registro(int rrn, char com_desconto);
+/* (Re)faz o índice respectivo */
+void criar_iprimary(Ip *indice_primario, int* nregistros);
+
+// ========================== ROTINAS DE LEITURA ============================
 
 /* Recupera do arquivo o registro com o rrn informado
  *  e retorna os dados na struct Produto */
 Produto recuperar_registro(int rrn);
 
-/* (Re)faz o índice respectivo */
-void criar_iprimary(Ip *indice_primario, int* nregistros);
-
 /* Realiza os scanfs na struct Produto */
 void ler_entrada(char* registro, Produto *novo);
 
-// gera o código do produto
-void gera_codigo(Produto *novo);
+// ========================= ROTINAS DE EXIBIÇÃO ============================
 
 /* Rotina para impressao de indice secundario */
 void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, int nregistros, int ncat);
 
+/* Exibe o Produto */
+int exibir_registro(int rrn, char com_desconto);
+
 /* Rotina de cadastro de registro */
+
+
+// =========================== ROTINAS AUXILIARES ==========================
+
+// gera o código do produto
+char* gerar_codigo(Produto *novo);
 
 
 /* ==========================================================================
@@ -152,9 +161,9 @@ int main(){
 	criar_iprimary(iprimary, &nregistros);
 
 	/*Alocar e criar índices secundários*/
-	Is iproduct, ibrand;
-	Isf iprice;
-	Ir icategory;
+	Is *iproduct, *ibrand;
+	Isf *iprice;
+	Ir *icategory;
 
 	/* Execução do programa */
 	int opcao = 0;
@@ -386,17 +395,3 @@ void ler_entrada(char *registro, Produto *novo){
 		strcat(registro, "#");
 	}
 }
-
-Produto* ler_registro(){
-	
-}
-// typedef struct {
-// 	char pk[TAM_PRIMARY_KEY];
-// 	char nome[TAM_NOME];
-// 	char marca[TAM_MARCA];
-// 	char data[TAM_DATA];	/* DD/MM/AAAA */
-// 	char ano[TAM_ANO];
-// 	char preco[TAM_PRECO];
-// 	char desconto[TAM_DESCONTO];
-// 	char categoria[TAM_CATEGORIA];
-// } Produto;

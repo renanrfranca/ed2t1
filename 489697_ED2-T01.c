@@ -5,8 +5,8 @@
  *
  * Trabalho 01
  *
- * RA:
- * Aluno:
+ * RA: 489697
+ * Aluno: Renan Rossignatti de França
  * ========================================================================== */
 
 /* Bibliotecas */
@@ -120,8 +120,13 @@ void criar_iprimary(Ip *indice_primario, int* nregistros);
 /* Realiza os scanfs na struct Produto */
 void ler_entrada(char* registro, Produto *novo);
 
+// gera o código do produto
+void gera_codigo(Produto *novo);
+
 /* Rotina para impressao de indice secundario */
 void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, int nregistros, int ncat);
+
+/* Rotina de cadastro de registro */
 
 
 /* ==========================================================================
@@ -130,6 +135,10 @@ void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, in
 int main(){
   /* Arquivo */
 	int carregarArquivo = 0, nregistros = 0, ncat = 0;
+	char registro[TAM_REGISTRO];
+	Produto novo;
+
+
 	scanf("%d%*c", &carregarArquivo); /* 1 (sim) | 0 (nao) */
 	if (carregarArquivo)
 		nregistros = carregar_arquivo();
@@ -143,6 +152,9 @@ int main(){
 	criar_iprimary(iprimary, &nregistros);
 
 	/*Alocar e criar índices secundários*/
+	Is iproduct, ibrand;
+	Isf iprice;
+	Ir icategory;
 
 	/* Execução do programa */
 	int opcao = 0;
@@ -152,7 +164,8 @@ int main(){
 		switch(opcao)
 		{
 			case 1:
-				/*cadastro*/
+				ler_entrada(&registro, &novo);
+				cadastrar_registro();
 			break;
 			case 2:
 				/*alterar desconto*/
@@ -324,3 +337,66 @@ void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, in
 		break;
 	}
 }
+
+
+/* Realiza os scanfs na struct Produto */
+void ler_entrada(char *registro, Produto *novo){
+	int i, tamanho_registro;
+
+	// nome
+	scanf("%[^\n]\n", novo->nome);
+
+	// marca
+	scanf("%[^\n]\n", novo->marca);
+
+	// data
+	scanf("%[^\n]\n", novo->data);
+	
+	// ano
+	scanf("%[^\n]\n", novo->ano);
+
+	// preco
+	scanf("%[^\n]\n", novo->preco);
+
+	// desconto
+	scanf("%[^\n]\n", novo->desconto);
+
+	// categoria
+	scanf("%[^\n]\n", novo->categoria);
+
+	// Criação do registro
+	strcpy(registro, novo->nome);
+	strcat(registro, "@");
+	strcat(registro, novo-> marca);
+	strcat(registro, "@");
+	strcat(registro, novo-> data);
+	strcat(registro, "@");
+	strcat(registro, novo-> ano);
+	strcat(registro, "@");
+	strcat(registro, novo-> preco);
+	strcat(registro, "@");
+	strcat(registro, novo-> desconto);
+	strcat(registro, "@");
+	strcat(registro, novo-> categoria);
+	strcat(registro, "@");
+
+	tamanho_registro = strlen(registro);
+
+	for (i = 0; i < (TAM_REGISTRO - tamanho_registro); i++){
+		strcat(registro, "#");
+	}
+}
+
+Produto* ler_registro(){
+	
+}
+// typedef struct {
+// 	char pk[TAM_PRIMARY_KEY];
+// 	char nome[TAM_NOME];
+// 	char marca[TAM_MARCA];
+// 	char data[TAM_DATA];	/* DD/MM/AAAA */
+// 	char ano[TAM_ANO];
+// 	char preco[TAM_PRECO];
+// 	char desconto[TAM_DESCONTO];
+// 	char categoria[TAM_CATEGORIA];
+// } Produto;

@@ -135,7 +135,7 @@ int exibir_registro(int rrn, char com_desconto);
 // =========================== ROTINAS AUXILIARES ==========================
 
 // gera o código do produto
-char* gerar_codigo(Produto *novo);
+void gerar_codigo(Produto *novo);
 
 
 /* ==========================================================================
@@ -174,7 +174,12 @@ int main(){
 		{
 			case 1:
 				ler_entrada(&registro, &novo);
-				cadastrar_registro();
+				if (!isUniquePk(novo.pk)){
+					// printa erro
+					// break
+				}
+				// Acrescenta registro ao fim da string
+				// atualiza inidces
 			break;
 			case 2:
 				/*alterar desconto*/
@@ -373,6 +378,9 @@ void ler_entrada(char *registro, Produto *novo){
 	// categoria
 	scanf("%[^\n]\n", novo->categoria);
 
+	// pk
+	gerar_codigo(novo);
+
 	// Criação do registro
 	strcpy(registro, novo->nome);
 	strcat(registro, "@");
@@ -394,4 +402,19 @@ void ler_entrada(char *registro, Produto *novo){
 	for (i = 0; i < (TAM_REGISTRO - tamanho_registro); i++){
 		strcat(registro, "#");
 	}
+}
+
+// Recebe uma struct produto e gera o campo pk para ela
+void gerar_codigo(Produto *novo){
+	novo->pk[0] = novo->nome[0];	//G
+	novo->pk[1] = novo->nome[1];	//E
+	novo->pk[2] = novo->marca[0];	//M
+	novo->pk[3] = novo->marca[1];	//S
+	novo->pk[4] = novo->data[0];	//1
+	novo->pk[5] = novo->data[1];	//1
+	novo->pk[6] = novo->data[3];	//0
+	novo->pk[7] = novo->data[4];	//9
+	novo->pk[8] = novo->ano[0];		//1
+	novo->pk[9] = novo->ano[1];		//7
+	novo->pk[10] = '\0';			//\0
 }

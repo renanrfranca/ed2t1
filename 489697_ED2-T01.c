@@ -137,6 +137,8 @@ int exibir_registro(int rrn, char com_desconto);
 // gera o código do produto
 void gerar_codigo(Produto *novo);
 
+int isUniquePK(char *pk);
+
 
 /* ==========================================================================
  * ============================ FUNÇÃO PRINCIPAL ============================
@@ -175,9 +177,10 @@ int main(){
 			case 1:
 				ler_entrada(&registro, &novo);
 				if (!isUniquePk(novo.pk)){
-					// printa erro
-					// break
+					printf(ERRO_PK_REPETIDA, novo.pk);
+					break;
 				}
+				strcat(ARQUIVO, registro);
 				// Acrescenta registro ao fim da string
 				// atualiza inidces
 			break;
@@ -285,14 +288,24 @@ int carregar_arquivo()
 	return strlen(ARQUIVO) / TAM_REGISTRO;
 }
 
+void criar_iprimary(Ip *indice_primario, int* nregistros){
+	
+}
+
+Produto recuperar_registro(int rrn){
+	char *registo = ARQUIVO + (rrn * TAM_REGISTRO);
+	Produto *p = malloc(sizeof(Produto));
+
+}
+
 
 /* Recupera do arquivo o registro com o rrn
  * informado e retorna os dados na struct Produto */
 Produto recuperar_registro(int rrn)
 {
-	char temp[193], *p;
+	char temp[TAM_REGISTRO+1], *p;
 	strncpy(temp, ARQUIVO + ((rrn)*192), 192);
-	temp[192] = '\0';
+	temp[TAM_REGISTRO] = '\0';
 	Produto j;
 	p = strtok(temp,"@");
 	strcpy(j.nome,p);
@@ -417,4 +430,12 @@ void gerar_codigo(Produto *novo){
 	novo->pk[8] = novo->ano[0];		//1
 	novo->pk[9] = novo->ano[1];		//7
 	novo->pk[10] = '\0';			//\0
+}
+
+int isUniquePK(char *pk){
+	// buscaBinariaNoIndice
+	// Se achou 
+		// retorna 0
+	// Se não
+		return 1;
 }

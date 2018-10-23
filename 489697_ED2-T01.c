@@ -290,9 +290,9 @@ int carregar_arquivo()
  * informado e retorna os dados na struct Produto */
 Produto recuperar_registro(int rrn)
 {
-	char temp[193], *p;
-	strncpy(temp, ARQUIVO + ((rrn)*192), 192);
-	temp[192] = '\0';
+	char temp[TAM_REGISTRO+1], *p;
+	strncpy(temp, ARQUIVO + ((rrn)*TAM_REGISTRO), TAM_REGISTRO);
+	temp[TAM_REGISTRO] = '\0';
 	Produto j;
 	p = strtok(temp,"@");
 	strcpy(j.nome,p);

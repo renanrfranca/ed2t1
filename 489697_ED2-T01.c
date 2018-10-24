@@ -121,6 +121,12 @@ Produto recuperar_registro(int rrn);
 /* Realiza os scanfs na struct Produto */
 void ler_entrada(char* registro, Produto *novo);
 
+// ================= ROTINAS DE MANIPULAÇÃO DE ÍNDICES ======================
+
+void inserir_primary(Produto *p, Ip *indice, int *nregistros);
+
+
+
 // ========================= ROTINAS DE EXIBIÇÃO ============================
 
 /* Rotina para impressao de indice secundario */
@@ -328,6 +334,13 @@ Produto recuperar_registro(int rrn)
 	return j;
 }
 
+void inserir_primary(Produto *p, Ip *indice, int *nregistros){
+	strcpy(indice[*nregistros].pk, p->pk); // Acrescenta nova chave primária
+	indice[*nregistros].rrn = *nregistros; // no final do vetor
+	*nregistros++; // incrementa qtd de itens
+
+	qsort(indice, *nregistros, sizeof(Ip), cmp_ip); // reordena
+}
 
 /* Imprimir indices secundarios */
 void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, int nregistros, int ncat){

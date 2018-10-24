@@ -176,7 +176,7 @@ int main(){
 		switch(opcao)
 		{
 			case 1:
-				ler_entrada(&registro, &novo);
+				ler_entrada(registro, &novo);
 				if (!isUniquePk(novo.pk)){
 					// printa erro
 					// break

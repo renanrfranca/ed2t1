@@ -374,25 +374,25 @@ void ler_entrada(char *registro, Produto *novo){
 	int i, tamanho_registro;
 
 	// nome
-	scanf("%[^\n]\n", novo->nome);
+	scanf("%[^\n]%*c", novo->nome);
 
 	// marca
-	scanf("%[^\n]\n", novo->marca);
+	scanf("%[^\n]%*c", novo->marca);
 
 	// data
-	scanf("%[^\n]\n", novo->data);
+	scanf("%[^\n]%*c", novo->data);
 	
 	// ano
-	scanf("%[^\n]\n", novo->ano);
+	scanf("%[^\n]%*c", novo->ano);
 
 	// preco
-	scanf("%[^\n]\n", novo->preco);
+	scanf("%[^\n]%*c", novo->preco);
 
 	// desconto
-	scanf("%[^\n]\n", novo->desconto);
+	scanf("%[^\n]%*c", novo->desconto);
 
 	// categoria
-	scanf("%[^\n]\n", novo->categoria);
+	scanf("%[^\n]%*c", novo->categoria);
 
 	// pk
 	gerarChave(novo);

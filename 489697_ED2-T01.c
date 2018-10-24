@@ -135,7 +135,7 @@ int exibir_registro(int rrn, char com_desconto);
 // =========================== ROTINAS AUXILIARES ==========================
 
 // gera o código do produto
-void gerar_codigo(Produto *novo);
+void gerarChave(Produto *novo);
 
 
 /* ==========================================================================
@@ -379,7 +379,7 @@ void ler_entrada(char *registro, Produto *novo){
 	scanf("%[^\n]\n", novo->categoria);
 
 	// pk
-	gerar_codigo(novo);
+	gerarChave(novo);
 
 	// Criação do registro
 	strcpy(registro, novo->nome);
@@ -405,7 +405,7 @@ void ler_entrada(char *registro, Produto *novo){
 }
 
 // Recebe uma struct produto e gera o campo pk para ela
-void gerar_codigo(Produto *novo){
+void gerarChave(Produto *novo){
 	novo->pk[0] = novo->nome[0];	//G
 	novo->pk[1] = novo->nome[1];	//E
 	novo->pk[2] = novo->marca[0];	//M

@@ -138,6 +138,9 @@ int exibir_registro(int rrn, char com_desconto);
 void gerarChave(Produto *novo);
 
 
+int cmp_ip(const void* ip1, const void* ip2);
+
+
 /* ==========================================================================
  * ============================ FUNÇÃO PRINCIPAL ============================
  * =============================== NÃO ALTERAR ============================== */
@@ -285,6 +288,19 @@ int carregar_arquivo()
 	return strlen(ARQUIVO) / TAM_REGISTRO;
 }
 
+void criar_iprimary(Ip *indice_primario, int* nregistros){
+	int i;
+	int nreg = *nregistros;
+	Produto p;
+	
+	for(i=0;i<nreg;i++){
+		p = recuperar_registro(i); // Recupera dados do registro de rrn i e os copia pra variável p
+		strcpy(indice_primario[i].pk, p.pk); // Copia PK pro índice
+		indice_primario[i].rrn = i; // Salva rrn do registro no índice
+	}
+
+	qsort(indice_primario, nreg, sizeof(Ip), cmp_ip);
+}
 
 /* Recupera do arquivo o registro com o rrn
  * informado e retorna os dados na struct Produto */
@@ -417,4 +433,11 @@ void gerarChave(Produto *novo){
 	novo->pk[8] = novo->ano[0];		//1
 	novo->pk[9] = novo->ano[1];		//7
 	novo->pk[10] = '\0';			//\0
+}
+
+int cmp_ip(const void* ip1, const void* ip2){
+	Ip *tip1 = (Ip *)ip1;
+  	Ip *tip2 = (Ip *)ip2;
+
+	return strcmp(tip1->pk, tip2->pk);
 }

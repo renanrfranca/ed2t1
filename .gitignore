@@ -53,3 +53,6 @@ dkms.conf
 
 # Renan
 casos-teste/
+.vscode
+main
+test.in

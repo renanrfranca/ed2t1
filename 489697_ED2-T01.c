@@ -137,8 +137,12 @@ void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, 
 
 // ========================= ROTINAS DE EXIBIÇÃO ============================
 
+// Rotina geral de busca
+void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int nregistros, int ncat);
+
 // Rotina geral para listagem
 void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int nregistros, int ncat);
+
 
 /* Rotina para impressao de indice secundario */
 void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, int nregistros, int ncat);
@@ -242,6 +246,7 @@ int main(){
 			case 4:
 				/*busca*/
 				printf(INICIO_BUSCA );
+				buscar(iprimary, iproduct, ibrand, icategory, iprice, nregistros, ncat);
 			break;
 			case 5:
 				/*listagens*/
@@ -481,6 +486,71 @@ int exibir_registro(int rrn, char com_desconto)
 	return 1;
 }
 
+// Rotina geral de busca
+void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int nregistros, int ncat){
+	int opBusca = 0;
+	int rrn;
+	int i;
+	Ip *paux;
+	Is *saux;
+	Is *sprev;
+
+	char temp[TAM_NOME];
+	//  i, rrn;
+	// char catNome[TAM_CATEGORIA];
+
+	scanf("%d%*c", &opBusca);
+	switch (opBusca) {
+		case 1: // Por código
+			scanf("%[^\n]%*c", temp); // lê PK do teclado
+			paux = bsearch(temp, iprimary, nregistros, sizeof(Ip), cmp_str_ip);
+			
+			if (paux){
+				exibir_registro(paux->rrn, 0);
+			} else {
+				printf(REGISTRO_N_ENCONTRADO);
+			}
+		break;
+
+		case 2: // Por nome 
+			scanf("%[^\n]%*c", temp); // lê nome do teclado
+			saux = bsearch(temp, iproduct, nregistros, sizeof(Is), cmp_str_is);
+			if (!saux){
+				printf(REGISTRO_N_ENCONTRADO);
+				break;
+			}
+
+			// Caso a bb não tenha retornado o primeiro elemento com o nome temp
+			// "rebobina" o array até achar o primeiro elemento de nome temp
+			sprev = saux;
+			sprev--;
+			while (strcmp(temp, sprev->string) == 0){
+				saux = sprev;
+				sprev--;
+			}
+
+			// Varre indice exibindo registros correspondentes a chave de busca
+			do {
+				rrn = getrrn(saux->pk, iprimary, nregistros);
+				exibir_registro(rrn, 0);
+				saux++;
+				i = strcmp(temp, saux->string);
+				if (i == 0)
+					printf("\n");
+			} while (i == 0);
+		break;
+
+		case 3: // Por marca e categoria
+			for (int i = 0; i < nregistros; i++){
+				rrn = getrrn(ibrand[i].pk, iprimary, nregistros);
+				if (i > 0)
+					printf("\n");
+				exibir_registro(rrn, 0);
+			}
+		break;
+	}
+}
+
 // Rotina geral para listagem
 void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int nregistros, int ncat){
 	int opList = 0, i, rrn;
@@ -533,7 +603,6 @@ void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 			}
 		break;
 	}
-	
 }
 
 /* Imprimir indices secundarios */
@@ -716,7 +785,7 @@ int cmp_str_is(const void* chave, const void* elemento){
 	char *key = (char *)chave;
 	Is *indice = (Is *)elemento;
 
-	return strcmp(key, indice->pk);
+	return strcmp(key, indice->string);
 }
 
 int cmp_str_ir(const void* chave, const void* elemento){

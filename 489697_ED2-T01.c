@@ -112,6 +112,9 @@ int carregar_arquivo();
 /* (Re)faz o índice respectivo */
 void criar_iprimary(Ip *indice_primario, int* nregistros);
 
+/* (Re)faz o índice respectivo */
+void criar_secundarios(Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int nregistros, int *ncat);
+
 // ========================== ROTINAS DE LEITURA ============================
 
 /* Recupera do arquivo o registro com o rrn informado
@@ -123,9 +126,14 @@ void ler_entrada(char* registro, Produto *novo);
 
 // ================= ROTINAS DE MANIPULAÇÃO DE ÍNDICES ======================
 
-void inserir_primary(Produto *p, Ip *indice, int *nregistros);
+void inserir_primary(Produto p, Ip *indice, int nregistros);
 
+void inserir_icategory(Produto p, Ir *icategory, int *ncat);
 
+// Insere o produto na lista ligada de uma das categorias existentes
+void inserir_produto_cat_ll(char* pk, Ir* categoria);
+
+void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, Isf* iprice, int nregistros, int* ncat);
 
 // ========================= ROTINAS DE EXIBIÇÃO ============================
 
@@ -135,16 +143,26 @@ void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, in
 /* Exibe o Produto */
 int exibir_registro(int rrn, char com_desconto);
 
-/* Rotina de cadastro de registro */
-
-
 // =========================== ROTINAS AUXILIARES ==========================
 
-// gera o código do produto
+// Recebe uma struct produto e gera o campo pk para ela
 void gerarChave(Produto *novo);
 
+// Retorna 1 caso a chave informada não esteja no índice, 0 caso contrário
+int isUniquePK(char *pk, Ip* iprimary, int nregistros);
 
+// ========================= ROTINAS DE COMPARAÇÃO ==========================
+
+// qsort
 int cmp_ip(const void* ip1, const void* ip2);
+int cmp_is(const void* is1, const void* is2);
+int cmp_isf(const void* isf1, const void* isf2);
+int cmp_ir(const void* ir1, const void* ir2);
+
+// Busca binária
+int cmp_str_ip(const void* chave, const void* elemento);
+int cmp_str_is(const void* chave, const void* elemento);
+int cmp_str_ir(const void* ir1, const void* ir2);
 
 
 /* ==========================================================================
@@ -170,10 +188,13 @@ int main(){
 	criar_iprimary(iprimary, &nregistros);
 
 	/*Alocar e criar índices secundários*/
-	Is *iproduct, *ibrand;
-	Isf *iprice;
-	Ir *icategory;
-
+	// iproduct
+	Is *iproduct = malloc(MAX_REGISTROS * sizeof(Is));
+	Is *ibrand = malloc(MAX_REGISTROS * sizeof(Is));
+	Isf *iprice = malloc(MAX_REGISTROS * sizeof(Isf));
+	Ir *icategory = malloc(MAX_CATEGORIAS * sizeof(Ir));
+	criar_secundarios(iproduct, ibrand, icategory, iprice, nregistros, &ncat);
+	
 	/* Execução do programa */
 	int opcao = 0;
 	while(1)
@@ -183,12 +204,14 @@ int main(){
 		{
 			case 1:
 				ler_entrada(registro, &novo);
-				if (!isUniquePk(novo.pk)){
-					// printa erro
-					// break
+				if (!isUniquePK(novo.pk, iprimary, nregistros)){
+					printf(ERRO_PK_REPETIDA, novo.pk);
+					break;
 				}
-				// Acrescenta registro ao fim da string
-				// atualiza inidces
+				strcat(ARQUIVO, registro);
+				nregistros++;
+				inserir_primary(novo, iprimary, nregistros);
+				inserir_secundarios(novo, iproduct, ibrand, icategory, iprice, nregistros, &ncat);
 			break;
 			case 2:
 				/*alterar desconto*/
@@ -308,6 +331,34 @@ void criar_iprimary(Ip *indice_primario, int* nregistros){
 	qsort(indice_primario, nreg, sizeof(Ip), cmp_ip);
 }
 
+void criar_secundarios(Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int nregistros, int *ncat){
+	int i;
+	Produto p;
+	
+	for(i=0;i<nregistros;i++){
+		p = recuperar_registro(i); // Recupera dados do registro de rrn i e os copia pra variável p
+
+		// iproduct
+		strcpy(iproduct[i].pk, p.pk); // Copia PK pro índice
+		strcpy(iproduct[i].string, p.nome); // Copia PK pro índice
+
+		// ibrand
+		strcpy(ibrand[i].pk, p.pk); // Copia PK pro índice
+		strcpy(ibrand[i].string, p.marca); // Copia PK pro índice
+
+		// iprice
+		strcpy(iprice[i].pk, p.pk); // Copia PK pro índice
+		iprice[i].price = (float)atof(p.preco);
+
+		// icategory (ordena automáticamente)
+		inserir_icategory(p, icategory, ncat);
+	}
+
+	qsort(iproduct, nregistros, sizeof(Is), cmp_is);
+	qsort(ibrand, nregistros, sizeof(Is), cmp_is);
+	qsort(iprice, nregistros, sizeof(Isf), cmp_isf);
+}
+
 /* Recupera do arquivo o registro com o rrn
  * informado e retorna os dados na struct Produto */
 Produto recuperar_registro(int rrn)
@@ -334,13 +385,91 @@ Produto recuperar_registro(int rrn)
 	return j;
 }
 
-void inserir_primary(Produto *p, Ip *indice, int *nregistros){
-	strcpy(indice[*nregistros].pk, p->pk); // Acrescenta nova chave primária
-	indice[*nregistros].rrn = *nregistros; // no final do vetor
-	*nregistros++; // incrementa qtd de itens
+void inserir_primary(Produto p, Ip *indice, int nregistros){
+	strcpy(indice[nregistros-1].pk, p.pk); // Acrescenta nova chave primária
+	indice[nregistros-1].rrn = nregistros; // no final do vetor
 
-	qsort(indice, *nregistros, sizeof(Ip), cmp_ip); // reordena
+	qsort(indice, nregistros, sizeof(Ip), cmp_ip); // reordena
 }
+
+void inserir_icategory(Produto p, Ir *icategory, int *ncat){
+	char temp[TAM_CATEGORIA];
+	char *tok;
+	Ir *cat;
+	int nAnteriorCat = *ncat;
+
+	strcpy(temp, p.categoria);
+
+	tok = strtok(temp, "|");
+	while (tok != NULL){
+		cat = bsearch(tok, icategory, *ncat, sizeof(Ir), cmp_str_ir);
+		// Se achou categoria com o nome tok
+		if (cat != NULL){
+			// insere a chave do produto na lista ligada de cat
+			inserir_produto_cat_ll(p.pk, cat);
+		} else {
+			strcpy(icategory[*ncat].cat, tok); // Insere categoria no vetor
+			icategory[*ncat].lista = NULL; // instancia lsita
+			inserir_produto_cat_ll(p.pk, &icategory[*ncat]); // insere pk do produto na lista
+			(*ncat)++; // incrementa o número de categorias
+		}
+		tok = strtok(NULL, "|");
+	}
+
+	// Se aumentou o número de categorias
+	if (*ncat > nAnteriorCat){
+		// Reordena o vetor
+		qsort(icategory, *ncat, sizeof(Ir), cmp_ir);
+	}
+}
+
+// Insere o produto na lista ligada de uma das categorias existentes
+void inserir_produto_cat_ll(char* pk, Ir* categoria){
+	ll* novo = malloc(sizeof(ll));
+	strcpy(novo->pk, pk);
+
+	// primeiro da lista
+	ll* aux = categoria->lista;
+	ll* prox;
+
+	// Se a lista estiver vazia ou se o primeiro elemento for maior que o elem a ser inserido
+	// insere no início da lista
+	if (aux == NULL || strcmp(aux->pk, novo->pk) > 0){
+		novo->prox = aux;
+		categoria->lista = novo;
+		return;
+	}
+
+	do {
+		prox = aux->prox;
+		if (prox == NULL || strcmp(prox->pk, novo->pk) > 0){
+			aux->prox = novo;
+			novo->prox = prox;
+			return;
+		}
+		aux = prox;
+	} while (aux != NULL);
+}
+
+void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, Isf* iprice, int nregistros, int* ncat){
+	// iproduct
+	strcpy(iproduct[nregistros-1].pk, novo.pk); // Copia PK pro índice
+	strcpy(iproduct[nregistros-1].string, novo.nome); // Copia PK pro índice
+	// ibrand
+	strcpy(ibrand[nregistros-1].pk, novo.pk); // Copia PK pro índice
+	strcpy(ibrand[nregistros-1].string, novo.marca); // Copia PK pro índice
+	// iprice
+	strcpy(iprice[nregistros-1].pk, novo.pk); // Copia PK pro índice
+	iprice[nregistros-1].price = (float)atof(novo.preco);
+	// icategory (ordena automáticamente)
+	inserir_icategory(novo, icategory, ncat);
+
+	qsort(iproduct, nregistros, sizeof(Is), cmp_is);
+	qsort(ibrand, nregistros, sizeof(Is), cmp_is);
+	qsort(iprice, nregistros, sizeof(Isf), cmp_isf);
+}
+
+// ========================= ROTINAS DE EXIBIÇÃO ============================
 
 /* Imprimir indices secundarios */
 void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, int nregistros, int ncat){
@@ -433,6 +562,8 @@ void ler_entrada(char *registro, Produto *novo){
 	}
 }
 
+// =========================== ROTINAS AUXILIARES ==========================
+
 // Recebe uma struct produto e gera o campo pk para ela
 void gerarChave(Produto *novo){
 	novo->pk[0] = novo->nome[0];	//G
@@ -448,9 +579,76 @@ void gerarChave(Produto *novo){
 	novo->pk[10] = '\0';			//\0
 }
 
-int cmp_ip(const void* ip1, const void* ip2){
-	Ip *tip1 = (Ip *)ip1;
-  	Ip *tip2 = (Ip *)ip2;
+// Retorna 1 caso a chave informada não esteja no índice, 0 caso contrário
+int isUniquePK(char *pk, Ip* iprimary, int nregistros){
+	Ip* elem = bsearch(pk, iprimary, nregistros, sizeof(Ip), cmp_str_ip);
 
-	return strcmp(tip1->pk, tip2->pk);
+	if (!elem)
+		return 1;
+	else
+		return 0;
+}
+
+// ========================= ROTINAS DE COMPARAÇÃO ==========================
+
+int cmp_ip(const void* ip1, const void* ip2){
+	Ip *a = (Ip *)ip1;
+  	Ip *b = (Ip *)ip2;
+
+	return strcmp(a->pk, b->pk);
+}
+
+int cmp_is(const void* is1, const void* is2){
+	int ret;
+	Is *a = (Is *)is1;
+  	Is *b = (Is *)is2;
+
+	ret = strcmp(a->string, b->string);
+	if (ret == 0)
+		return strcmp(a->pk, b->pk);
+	else
+		return ret;
+}
+
+int cmp_isf(const void* isf1, const void* isf2){
+	int ret;
+	Isf *a = (Isf *)isf1;
+  	Isf *b = (Isf *)isf2;
+
+	if (a->price == b->price){
+		return strcmp(a->pk, b->pk);
+	}
+
+	if (a->price > b->price)
+		return 1;
+	else 
+		return -1;
+}
+
+int cmp_ir(const void* ir1, const void* ir2){
+	Ir *a = (Ir *)ir1;
+  	Ir *b = (Ir *)ir2;
+
+	return strcmp(a->cat, b->cat);
+}
+
+int cmp_str_ip(const void* chave, const void* elemento){
+	char *key = (char *)chave;
+	Ip *indice = (Ip *)elemento;
+
+	return strcmp(key, indice->pk);
+}
+
+int cmp_str_is(const void* chave, const void* elemento){
+	char *key = (char *)chave;
+	Is *indice = (Is *)elemento;
+
+	return strcmp(key, indice->pk);
+}
+
+int cmp_str_ir(const void* chave, const void* elemento){
+	char *key = (char *)chave;
+	Ir *indice = (Ir *)elemento;
+
+	return strcmp(key, indice->cat);
 }

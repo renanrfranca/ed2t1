@@ -137,6 +137,9 @@ void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, 
 
 // ========================= ROTINAS DE EXIBIÇÃO ============================
 
+// Rotina geral para listagem
+void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int nregistros, int ncat);
+
 /* Rotina para impressao de indice secundario */
 void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, int nregistros, int ncat);
 
@@ -150,6 +153,9 @@ void gerarChave(Produto *novo);
 
 // Retorna 1 caso a chave informada não esteja no índice, 0 caso contrário
 int isUniquePK(char *pk, Ip* iprimary, int nregistros);
+
+// Recebe uma pk e busca o rrn no índice primário
+int getrrn(char *pk, Ip *iprimary, int nregistros);
 
 // ========================= ROTINAS DE COMPARAÇÃO ==========================
 
@@ -240,6 +246,7 @@ int main(){
 			case 5:
 				/*listagens*/
 				printf(INICIO_LISTAGEM);
+				listar(iprimary, iproduct, ibrand, icategory, iprice, nregistros, ncat);
 			break;
 			case 6:
 				/*libera espaço*/
@@ -265,52 +272,6 @@ int main(){
 	return 0;
 }
 
-
-/* Exibe o Produto */
-int exibir_registro(int rrn, char com_desconto)
-{
-	if(rrn<0)
-		return 0;
-	float preco;
-	int desconto;
-	Produto j = recuperar_registro(rrn);
-  	char *cat, categorias[TAM_CATEGORIA];
-	printf("%s\n", j.pk);
-	printf("%s\n", j.nome);
-	printf("%s\n", j.marca);
-	printf("%s\n", j.data);
-	if(!com_desconto)
-	{
-		printf("%s\n", j.preco);
-		printf("%s\n", j.desconto);
-	}
-	else
-	{
-		sscanf(j.desconto,"%d",&desconto);
-		sscanf(j.preco,"%f",&preco);
-		preco = preco *  (100-desconto);
-		preco = ((int) preco)/ (float) 100 ;
-		printf("%07.2f\n",  preco);
-
-	}
-	strcpy(categorias, j.categoria);
-
-	cat = strtok (categorias, "|");
-
-	while(cat != NULL){
-		printf("%s", cat);
-		cat = strtok (NULL, "|");
-		if(cat != NULL){
-			printf(", ");
-		}
-	}
-
-	printf("\n");
-
-	return 1;
-}
-
-
 int carregar_arquivo()
 {
 	scanf("%[^\n]\n", ARQUIVO);
@@ -334,6 +295,8 @@ void criar_iprimary(Ip *indice_primario, int* nregistros){
 void criar_secundarios(Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int nregistros, int *ncat){
 	int i;
 	Produto p;
+	int desconto;
+	float preco;
 	
 	for(i=0;i<nregistros;i++){
 		p = recuperar_registro(i); // Recupera dados do registro de rrn i e os copia pra variável p
@@ -347,8 +310,12 @@ void criar_secundarios(Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int
 		strcpy(ibrand[i].string, p.marca); // Copia PK pro índice
 
 		// iprice
-		strcpy(iprice[i].pk, p.pk); // Copia PK pro índice
-		iprice[i].price = (float)atof(p.preco);
+		strcpy(iprice[i].pk, p.pk); // Copia 
+		sscanf(p.desconto,"%d",&desconto);
+		sscanf(p.preco,"%f",&preco);
+		preco = preco *  (100-desconto);
+		preco = ((int) preco)/ (float) 100 ;
+		iprice[i].price = preco;
 
 		// icategory (ordena automáticamente)
 		inserir_icategory(p, icategory, ncat);
@@ -470,6 +437,104 @@ void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, 
 }
 
 // ========================= ROTINAS DE EXIBIÇÃO ============================
+/* Exibe o Produto */
+int exibir_registro(int rrn, char com_desconto)
+{
+	if(rrn<0)
+		return 0;
+	float preco;
+	int desconto;
+	Produto j = recuperar_registro(rrn);
+  	char *cat, categorias[TAM_CATEGORIA];
+	printf("%s\n", j.pk);
+	printf("%s\n", j.nome);
+	printf("%s\n", j.marca);
+	printf("%s\n", j.data);
+	if(!com_desconto)
+	{
+		printf("%s\n", j.preco);
+		printf("%s\n", j.desconto);
+	}
+	else
+	{
+		sscanf(j.desconto,"%d",&desconto);
+		sscanf(j.preco,"%f",&preco);
+		preco = preco *  (100-desconto);
+		preco = ((int) preco)/ (float) 100 ;
+		printf("%07.2f\n",  preco);
+
+	}
+	strcpy(categorias, j.categoria);
+
+	cat = strtok (categorias, "|");
+
+	while(cat != NULL){
+		printf("%s", cat);
+		cat = strtok (NULL, "|");
+		if(cat != NULL){
+			printf(", ");
+		}
+	}
+
+	printf("\n");
+
+	return 1;
+}
+
+// Rotina geral para listagem
+void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int nregistros, int ncat){
+	int opList = 0, i, rrn;
+	char catNome[TAM_CATEGORIA];
+
+	scanf("%d%*c", &opList);
+	if (!nregistros){
+		printf(REGISTRO_N_ENCONTRADO);
+		return;
+	}
+	switch (opList) {
+		case 1:
+			for (int i = 0; i < nregistros; i++){
+				if (i > 0)
+					printf("\n");
+				exibir_registro(iprimary[i].rrn, 0);
+			}
+		break;
+
+		case 2:
+			scanf("%[^\n]%*c", catNome); // lê categoria a ser listada
+			Ir *cat = bsearch(catNome, icategory, ncat, sizeof(Ir), cmp_str_ir);
+			ll *aux = cat->lista;
+			
+			while (aux != NULL){
+				rrn = getrrn(aux->pk, iprimary, nregistros);
+				exibir_registro(rrn, 0);
+
+				aux = aux->prox;
+				if (aux)
+					printf("\n");
+			}
+		break;
+
+		case 3:
+			for (int i = 0; i < nregistros; i++){
+				rrn = getrrn(ibrand[i].pk, iprimary, nregistros);
+				if (i > 0)
+					printf("\n");
+				exibir_registro(rrn, 0);
+			}
+		break;
+
+		case 4:
+			for (int i = 0; i < nregistros; i++){
+				rrn = getrrn(iprice[i].pk, iprimary, nregistros);
+				if (i > 0)
+					printf("\n");
+				exibir_registro(rrn, 1);
+			}
+		break;
+	}
+	
+}
 
 /* Imprimir indices secundarios */
 void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, int nregistros, int ncat){
@@ -509,7 +574,6 @@ void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, in
 		break;
 	}
 }
-
 
 /* Realiza os scanfs na struct Produto */
 void ler_entrada(char *registro, Produto *novo){
@@ -587,6 +651,15 @@ int isUniquePK(char *pk, Ip* iprimary, int nregistros){
 		return 1;
 	else
 		return 0;
+}
+
+// Recebe uma pk e busca o rrn no índice primário
+int getrrn(char *pk, Ip *iprimary, int nregistros){
+	Ip *reg = bsearch(pk, iprimary, nregistros, sizeof(Ip), cmp_str_ip);
+	if(!reg)
+		return -1;
+	else
+		return reg->rrn;
 }
 
 // ========================= ROTINAS DE COMPARAÇÃO ==========================

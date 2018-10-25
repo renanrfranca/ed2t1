@@ -319,8 +319,7 @@ void criar_secundarios(Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int
 		sscanf(p.desconto,"%d",&desconto);
 		sscanf(p.preco,"%f",&preco);
 		preco = preco *  (100-desconto);
-		preco = ((int) preco)/ (float) 100 ;
-		iprice[i].price = preco;
+		iprice[i].price = ((int) preco)/ (float) 100 ;
 
 		// icategory (ordena automáticamente)
 		inserir_icategory(p, icategory, ncat);
@@ -359,7 +358,7 @@ Produto recuperar_registro(int rrn)
 
 void inserir_primary(Produto p, Ip *indice, int nregistros){
 	strcpy(indice[nregistros-1].pk, p.pk); // Acrescenta nova chave primária
-	indice[nregistros-1].rrn = nregistros; // no final do vetor
+	indice[nregistros-1].rrn = nregistros - 1; // no final do vetor
 
 	qsort(indice, nregistros, sizeof(Ip), cmp_ip); // reordena
 }
@@ -424,6 +423,9 @@ void inserir_produto_cat_ll(char* pk, Ir* categoria){
 }
 
 void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, Isf* iprice, int nregistros, int* ncat){
+	int desconto;
+	float preco;
+
 	// iproduct
 	strcpy(iproduct[nregistros-1].pk, novo.pk); // Copia PK pro índice
 	strcpy(iproduct[nregistros-1].string, novo.nome); // Copia PK pro índice
@@ -432,7 +434,11 @@ void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, 
 	strcpy(ibrand[nregistros-1].string, novo.marca); // Copia PK pro índice
 	// iprice
 	strcpy(iprice[nregistros-1].pk, novo.pk); // Copia PK pro índice
-	iprice[nregistros-1].price = (float)atof(novo.preco);
+	sscanf(novo.desconto,"%d",&desconto);
+	sscanf(novo.preco,"%f",&preco);
+	preco = preco *  (100-desconto);
+	iprice[nregistros-1].price = ((int) preco)/ (float) 100 ;
+
 	// icategory (ordena automáticamente)
 	inserir_icategory(novo, icategory, ncat);
 
@@ -494,10 +500,11 @@ void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 	Ip *paux;
 	Is *saux;
 	Is *sprev;
+	Ir *raux;
+	ll *laux;
 
 	char temp[TAM_NOME];
-	//  i, rrn;
-	// char catNome[TAM_CATEGORIA];
+	char catNome[TAM_CATEGORIA];
 
 	scanf("%d%*c", &opBusca);
 	switch (opBusca) {
@@ -524,7 +531,7 @@ void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 			// "rebobina" o array até achar o primeiro elemento de nome temp
 			sprev = saux;
 			sprev--;
-			while (strcmp(temp, sprev->string) == 0){
+			while (sprev && strcmp(temp, sprev->string) == 0){
 				saux = sprev;
 				sprev--;
 			}
@@ -534,19 +541,64 @@ void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 				rrn = getrrn(saux->pk, iprimary, nregistros);
 				exibir_registro(rrn, 0);
 				saux++;
-				i = strcmp(temp, saux->string);
+				if (saux){
+					i = strcmp(temp, saux->string);
+				} else {
+					i = -1;
+				}
 				if (i == 0)
 					printf("\n");
 			} while (i == 0);
 		break;
 
 		case 3: // Por marca e categoria
-			for (int i = 0; i < nregistros; i++){
-				rrn = getrrn(ibrand[i].pk, iprimary, nregistros);
-				if (i > 0)
-					printf("\n");
-				exibir_registro(rrn, 0);
+			scanf("%[^\n]%*c", temp); // lê marca do teclado
+			scanf("%[^\n]%*c", catNome); // lê categoria do teclado
+			saux = bsearch(temp, ibrand, nregistros, sizeof(Is), cmp_str_is);
+			if (!saux){
+				printf(REGISTRO_N_ENCONTRADO);
+				break;
 			}
+
+			// Caso a bb não tenha retornado o primeiro elemento com a marca temp
+			// "rebobina" o array até achar o primeiro elemento de marca temp
+			sprev = saux;
+			sprev--;
+			while (saux && strcmp(temp, sprev->string) == 0){
+				saux = sprev;
+				sprev--;
+			}
+
+			int numRetornos = 0;
+			// Varre indice processando registros da marca informada
+			do {
+				raux = bsearch(catNome, icategory, ncat, sizeof(Ir), cmp_str_ir);
+				if (raux) {
+					laux = raux->lista;
+
+					while (laux != NULL){
+						if (strcmp(saux->pk, laux->pk) == 0){
+							if (numRetornos > 0)
+								printf("\n");
+							numRetornos++;
+							rrn = getrrn(laux->pk, iprimary, nregistros);
+							exibir_registro(rrn, 0);
+						}
+						laux = laux->prox;
+					}
+				}
+				saux++;
+				if (saux){
+					i = strcmp(temp, saux->string);
+				} else {
+					i = -1;
+				}
+				if (i == 0)
+					printf("\n");					
+			} while (i == 0);
+
+			if (numRetornos == 0)
+				printf(REGISTRO_N_ENCONTRADO);
 		break;
 	}
 }

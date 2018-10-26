@@ -39,7 +39,7 @@
 #define REGISTRO_N_ENCONTRADO 		"Registro(s) nao encontrado!\n"
 #define CAMPO_INVALIDO 				"Campo invalido! Informe novamente.\n"
 #define ERRO_PK_REPETIDA			"ERRO: Ja existe um registro com a chave primaria: %s.\n"
-#define ARQUIVO_VAZIO 				"Arquivo vazio!"
+#define ARQUIVO_VAZIO 				"Arquivo vazio!\n"
 #define INICIO_BUSCA 		 		"**********************BUSCAR**********************\n"
 #define INICIO_LISTAGEM  			"**********************LISTAR**********************\n"
 #define INICIO_ALTERACAO 			"**********************ALTERAR*********************\n"
@@ -574,7 +574,9 @@ void atualiza_iprice(Isf *iprice, Produto produto, int nregistros){
 	sscanf(produto.preco,"%f",&preco);
 	preco = (preco *  (100-desconto))/100.0;
 	preco = preco * 100;
-	elem->price = ((int) preco)/ (float) 100 ;
+	elem->price = ((int) preco)/ (float) 100;
+
+	qsort(iprice, nregistros, sizeof(Isf), cmp_isf);
 }
 
 // ========================= ROTINAS DE EXIBIÇÃO ============================
@@ -766,17 +768,25 @@ void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 					nresultados++;
 				}
 			}
+			if (nresultados == 0)
+				printf(REGISTRO_N_ENCONTRADO);
 		break;
 
 		case 2:
 			scanf("%[^\n]%*c", catNome); // lê categoria a ser listada
 			Ir *cat = bsearch(catNome, icategory, ncat, sizeof(Ir), cmp_str_ir);
+			if (!cat)
+				printf(REGISTRO_N_ENCONTRADO);
 			ll *aux = cat->lista;
-			
+			if (!aux)
+				printf(REGISTRO_N_ENCONTRADO);
+
+			nresultados = 0;
 			while (aux != NULL){
 				rrn = getrrn(aux->pk, iprimary, nregistros);
 				if (rrn >= 0){ // Se não foi removido
 					exibir_registro(rrn, 0);
+					nresultados++;
 				}
 
 				aux = aux->prox;
@@ -785,6 +795,8 @@ void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 						printf("\n");
 				}
 			}
+			if (nresultados == 0)
+				printf(REGISTRO_N_ENCONTRADO);
 		break;
 
 		case 3:
@@ -798,6 +810,8 @@ void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 					nresultados++;
 				}
 			}
+			if (nresultados == 0)
+				printf(REGISTRO_N_ENCONTRADO);
 		break;
 
 		case 4:
@@ -811,6 +825,8 @@ void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 					nresultados++;
 				}
 			}
+			if (nresultados == 0)
+				printf(REGISTRO_N_ENCONTRADO);
 		break;
 	}
 }

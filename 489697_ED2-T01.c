@@ -103,7 +103,7 @@ char ARQUIVO[TAM_ARQUIVO];
  * ========================= PROTÓTIPOS DAS FUNÇÕES =========================
  * ========================================================================== */
 
-// ======================= ROTINAS DE INICIALIZAÇÃO =========================
+// ======================= ROTINAS DE (Re)INICIALIZAÇÃO =========================
 
 /* Recebe do usuário uma string simulando o arquivo completo e retorna o número
  * de registros. */
@@ -114,6 +114,9 @@ void criar_iprimary(Ip *indice_primario, int* nregistros);
 
 /* (Re)faz o índice respectivo */
 void criar_secundarios(Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int nregistros, int *ncat);
+
+// limpa arquivo de dados e atualiza número de registros
+void limparArquivo(int *nregistros);
 
 // ========================== ROTINAS DE LEITURA ============================
 
@@ -160,6 +163,11 @@ void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, in
 /* Exibe o Produto */
 int exibir_registro(int rrn, char com_desconto);
 
+// ========================= ROTINAS DE LIMPEZA ============================
+
+// Remove todas as categorias e os produtos relacionados
+void limpar_categorias(Ir *icategorias, int *ncat);
+
 // =========================== ROTINAS AUXILIARES ==========================
 
 // Recebe uma struct produto e gera o campo pk para ela
@@ -202,7 +210,7 @@ int main(){
 
 	/* Índice primário */
 	Ip *iprimary = (Ip *) malloc (MAX_REGISTROS * sizeof(Ip));
-  	if (!iprimary) {
+	if (!iprimary) {
 		perror(MEMORIA_INSUFICIENTE);
 		exit(1);
 	}
@@ -265,6 +273,10 @@ int main(){
 			break;
 			case 6:
 				/*libera espaço*/
+				limparArquivo(&nregistros);
+				limpar_categorias(icategory, &ncat);
+				criar_iprimary(iprimary, &nregistros);
+				criar_secundarios(iproduct, ibrand, icategory, iprice, nregistros, &ncat);
 			break;
 			case 7:
 				/*imprime o arquivo de dados*/
@@ -339,6 +351,26 @@ void criar_secundarios(Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int
 	qsort(iproduct, nregistros, sizeof(Is), cmp_is);
 	qsort(ibrand, nregistros, sizeof(Is), cmp_is);
 	qsort(iprice, nregistros, sizeof(Isf), cmp_isf);
+}
+
+// limpa arquivo de dados e atualiza número de registros
+void limparArquivo(int *nregistros){
+	char tempArquivo[TAM_ARQUIVO];
+	char tempRegistro[TAM_REGISTRO];
+	char *registro;
+
+	strcpy(tempArquivo, ARQUIVO); // Copia arquivo pra uma string temporária
+	ARQUIVO[0] = '\0'; // """Zera""" a string arquivo
+	registro = tempArquivo; // Pega primeiro registro do antigo arquivo
+	while (*registro != '\0'){ // enquanto não chegar ao fim da string
+		if (registro[0] != '*' || registro[1] != '|'){ // Se não estiver marcado para exclusão
+			strncpy(tempRegistro, registro, TAM_REGISTRO);
+			tempRegistro[TAM_REGISTRO] = '\0';
+			strcat(ARQUIVO, tempRegistro);
+		}
+		registro += TAM_REGISTRO;
+	}
+	*nregistros = strlen(ARQUIVO) / TAM_REGISTRO;
 }
 
 /* Recupera do arquivo o registro com o rrn
@@ -871,6 +903,29 @@ void ler_entrada(char *registro, Produto *novo){
 	for (i = 0; i < (TAM_REGISTRO - tamanho_registro); i++){
 		strcat(registro, "#");
 	}
+}
+
+// ========================= ROTINAS DE LIMPEZA ============================
+
+// Remove todas as categorias e os produtos relacionados
+void limpar_categorias(Ir *icategorias, int *ncat){
+	int i;
+	Ir *cat;
+	ll *laux, *lant;
+
+	for (i=0;i<*ncat;i++){
+		laux = icategorias[i].lista;
+		while (laux){
+			lant = laux;
+			laux = laux->prox;
+			free(lant);
+		}
+
+		icategorias[i].cat[0] = '\0';
+		icategorias[i].lista = NULL;
+	}
+
+	*ncat = 0;
 }
 
 // =========================== ROTINAS AUXILIARES ==========================

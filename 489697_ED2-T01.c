@@ -126,7 +126,11 @@ void ler_entrada(char* registro, Produto *novo);
 
 // ======================= ROTINAS DE ALTO NIVEL ============================
 
+// altera registro, retornando 1 em caso de sucesso e 0 caso contrário
 int alterar(Ip *iprimary, Isf *iprice, int nregistros);
+
+// Remove registro, retornando 1 em caso de sucesso e 0 caso contrário
+int remover(Ip *iprimary, int nregistros);
 
 // ================= ROTINAS DE MANIPULAÇÃO DE ÍNDICES ======================
 
@@ -243,12 +247,11 @@ int main(){
 			case 3:
 				/*excluir produto*/
 				printf(INICIO_EXCLUSAO);
-				/*
-				if(remover([args]))
+				if(remover(iprimary, nregistros))
 					printf(SUCESSO);
 				else
 					printf(FALHA);
-				*/
+				
 			break;
 			case 4:
 				/*busca*/
@@ -378,7 +381,7 @@ int alterar(Ip *iprimary, Isf *iprice, int nregistros){
 	scanf("%[^\n]%*c", pk); // lê PK do teclado
 	// busca o produto por chave
 	pelem = bsearch(pk, iprimary, nregistros, sizeof(Ip), cmp_str_ip);
-	if (!pelem){
+	if (!pelem || pelem->rrn < 0){
 		printf(REGISTRO_N_ENCONTRADO);
 		return 0;
 	}
@@ -404,6 +407,28 @@ int alterar(Ip *iprimary, Isf *iprice, int nregistros){
 	creg[2] = desconto[2];
 
 	atualiza_iprice(iprice, recuperar_registro(pelem->rrn), nregistros);
+	return 1;
+}
+
+// Remove registro, retornando 1 em caso de sucesso e 0 caso contrário
+int remover(Ip *iprimary, int nregistros){
+	char pk[TAM_PRIMARY_KEY];
+	Ip *pelem;
+	char *registro;
+
+	scanf("%[^\n]%*c", pk); // lê PK do teclado
+	// busca o produto por chave
+	pelem = bsearch(pk, iprimary, nregistros, sizeof(Ip), cmp_str_ip);
+	if (!pelem || pelem->rrn < 0){
+		printf(REGISTRO_N_ENCONTRADO);
+		return 0;
+	}
+
+	registro = ARQUIVO + (pelem->rrn * TAM_REGISTRO);
+	registro[0] = '*';
+	registro[1] = '|';
+
+	pelem->rrn = -1;
 	return 1;
 }
 
@@ -570,6 +595,7 @@ void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 	int opBusca = 0;
 	int rrn;
 	int i;
+	int nresultados;
 	Ip *paux;
 	Is *saux;
 	Is *sprev;
@@ -585,7 +611,7 @@ void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 			scanf("%[^\n]%*c", temp); // lê PK do teclado
 			paux = bsearch(temp, iprimary, nregistros, sizeof(Ip), cmp_str_ip);
 			
-			if (paux){
+			if (paux && paux->rrn >= 0){
 				exibir_registro(paux->rrn, 0);
 			} else {
 				printf(REGISTRO_N_ENCONTRADO);
@@ -610,18 +636,25 @@ void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 			}
 
 			// Varre indice exibindo registros correspondentes a chave de busca
+			nresultados = 0;
 			do {
 				rrn = getrrn(saux->pk, iprimary, nregistros);
-				exibir_registro(rrn, 0);
+				if (rrn >= 0){ // Se registro não foi excluído
+					if (nresultados > 0) // Se não for o primeiro registro, pula linha
+						printf("\n");
+					exibir_registro(rrn, 0);
+					nresultados++;
+				} 
 				saux++;
 				if (saux){
 					i = strcmp(temp, saux->string);
 				} else {
 					i = -1;
-				}
-				if (i == 0)
-					printf("\n");
+				}					
 			} while (i == 0);
+
+			if (nresultados == 0)
+				printf(REGISTRO_N_ENCONTRADO);
 		break;
 
 		case 3: // Por marca e categoria
@@ -649,18 +682,20 @@ void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 				break;
 			}
 
-			int numRetornos = 0;
+			nresultados = 0;
 			// Varre indice processando registros da marca informada
 			do {
 				laux = raux->lista;
 
 				while (laux != NULL){
 					if (strcmp(saux->pk, laux->pk) == 0){
-						if (numRetornos > 0)
-							printf("\n");
-						numRetornos++;
 						rrn = getrrn(laux->pk, iprimary, nregistros);
-						exibir_registro(rrn, 0);
+						if (rrn >= 0){ // Se registro não foi excluído
+							if (nresultados > 0)
+								printf("\n");
+							exibir_registro(rrn, 0);
+							nresultados++;
+						}
 					}
 					laux = laux->prox;
 				}
@@ -672,7 +707,7 @@ void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 				}
 			} while (i == 0);
 
-			if (numRetornos == 0)
+			if (nresultados == 0)
 				printf(REGISTRO_N_ENCONTRADO);
 		break;
 	}
@@ -680,7 +715,7 @@ void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 
 // Rotina geral para listagem
 void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int nregistros, int ncat){
-	int opList = 0, i, rrn;
+	int opList = 0, i, nresultados, rrn;
 	char catNome[TAM_CATEGORIA];
 
 	scanf("%d%*c", &opList);
@@ -690,10 +725,14 @@ void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 	}
 	switch (opList) {
 		case 1:
+			nresultados = 0;
 			for (int i = 0; i < nregistros; i++){
-				if (i > 0)
-					printf("\n");
-				exibir_registro(iprimary[i].rrn, 0);
+				if (iprimary[i].rrn >= 0){ // Se não foi removido
+					if (nresultados > 0) // Se não for primeira 
+						printf("\n");
+					exibir_registro(iprimary[i].rrn, 0);
+					nresultados++;
+				}
 			}
 		break;
 
@@ -704,29 +743,41 @@ void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 			
 			while (aux != NULL){
 				rrn = getrrn(aux->pk, iprimary, nregistros);
-				exibir_registro(rrn, 0);
+				if (rrn >= 0){ // Se não foi removido
+					exibir_registro(rrn, 0);
+				}
 
 				aux = aux->prox;
-				if (aux)
-					printf("\n");
+				if (aux){ // se tem próximo
+					if (rrn >= 0) // Se registro atual não foi removido
+						printf("\n");
+				}
 			}
 		break;
 
 		case 3:
+			nresultados = 0;
 			for (int i = 0; i < nregistros; i++){
 				rrn = getrrn(ibrand[i].pk, iprimary, nregistros);
-				if (i > 0)
-					printf("\n");
-				exibir_registro(rrn, 0);
+				if (rrn >= 0){ // Se não foi removido
+					if (nresultados > 0)
+						printf("\n");
+					exibir_registro(rrn, 0);
+					nresultados++;
+				}
 			}
 		break;
 
 		case 4:
+			nresultados = 0;
 			for (int i = 0; i < nregistros; i++){
 				rrn = getrrn(iprice[i].pk, iprimary, nregistros);
-				if (i > 0)
-					printf("\n");
-				exibir_registro(rrn, 1);
+				if (rrn >= 0){
+					if (nresultados > 0)
+						printf("\n");
+					exibir_registro(rrn, 1);
+					nresultados++;
+				}
 			}
 		break;
 	}
@@ -845,8 +896,11 @@ int isUniquePK(char *pk, Ip* iprimary, int nregistros){
 
 	if (!elem)
 		return 1;
-	else
-		return 0;
+
+	if (elem->rrn < 0)
+		return 1;
+
+	return 0;
 }
 
 // Recebe uma pk e busca o rrn no índice primário

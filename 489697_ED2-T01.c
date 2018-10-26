@@ -124,6 +124,10 @@ Produto recuperar_registro(int rrn);
 /* Realiza os scanfs na struct Produto */
 void ler_entrada(char* registro, Produto *novo);
 
+// ======================= ROTINAS DE ALTO NIVEL ============================
+
+int alterar(Ip *iprimary, Isf *iprice, int nregistros);
+
 // ================= ROTINAS DE MANIPULAÇÃO DE ÍNDICES ======================
 
 void inserir_primary(Produto p, Ip *indice, int nregistros);
@@ -134,6 +138,8 @@ void inserir_icategory(Produto p, Ir *icategory, int *ncat);
 void inserir_produto_cat_ll(char* pk, Ir* categoria);
 
 void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, Isf* iprice, int nregistros, int* ncat);
+
+void atualiza_iprice(Isf *iprice, Produto produto, int nregistros);
 
 // ========================= ROTINAS DE EXIBIÇÃO ============================
 
@@ -161,6 +167,8 @@ int isUniquePK(char *pk, Ip* iprimary, int nregistros);
 // Recebe uma pk e busca o rrn no índice primário
 int getrrn(char *pk, Ip *iprimary, int nregistros);
 
+int isValidDesconto(char *desconto);
+
 // ========================= ROTINAS DE COMPARAÇÃO ==========================
 
 // qsort
@@ -173,7 +181,6 @@ int cmp_ir(const void* ir1, const void* ir2);
 int cmp_str_ip(const void* chave, const void* elemento);
 int cmp_str_is(const void* chave, const void* elemento);
 int cmp_str_ir(const void* ir1, const void* ir2);
-
 
 /* ==========================================================================
  * ============================ FUNÇÃO PRINCIPAL ============================
@@ -226,12 +233,12 @@ int main(){
 			case 2:
 				/*alterar desconto*/
 				printf(INICIO_ALTERACAO);
-				/*
-				if(alterar([args]))
+				
+				if(alterar(iprimary, iprice, nregistros))
 					printf(SUCESSO);
 				else
 					printf(FALHA);
-				*/
+				
 			break;
 			case 3:
 				/*excluir produto*/
@@ -357,6 +364,51 @@ Produto recuperar_registro(int rrn)
 	return j;
 }
 
+// ======================= ROTINAS DE ALTO NIVEL ============================
+
+int alterar(Ip *iprimary, Isf *iprice, int nregistros){
+	char pk[TAM_PRIMARY_KEY];
+	char desconto[TAM_DESCONTO];
+	Ip *pelem;
+	char *registro;
+	char *creg;
+	int descontoi;
+	int i;
+
+	scanf("%[^\n]%*c", pk); // lê PK do teclado
+	// busca o produto por chave
+	pelem = bsearch(pk, iprimary, nregistros, sizeof(Ip), cmp_str_ip);
+	if (!pelem){
+		printf(REGISTRO_N_ENCONTRADO);
+		return 0;
+	}
+
+	scanf("%[^\n]%*c", desconto); // lê desconto do teclado
+	while (!isValidDesconto(desconto)){
+		printf(CAMPO_INVALIDO);
+		scanf("%[^\n]%*c", desconto); // lê desconto do teclado novamente
+	}
+
+	registro = ARQUIVO + (pelem->rrn * TAM_REGISTRO);
+	creg = registro; // define creg como primeiro char do registro
+	i = 0; // i conta a quantidade de @s encontrados
+	while(i < 5){
+		if (*creg == '@')
+			i++;
+		creg++;
+	}
+	
+	// Sobreescreve valor anterior
+	creg[0] = desconto[0];
+	creg[1] = desconto[1];
+	creg[2] = desconto[2];
+
+	atualiza_iprice(iprice, recuperar_registro(pelem->rrn), nregistros);
+	return 1;
+}
+
+// ================= ROTINAS DE MANIPULAÇÃO DE ÍNDICES ======================
+
 void inserir_primary(Produto p, Ip *indice, int nregistros){
 	strcpy(indice[nregistros-1].pk, p.pk); // Acrescenta nova chave primária
 	indice[nregistros-1].rrn = nregistros - 1; // no final do vetor
@@ -447,6 +499,25 @@ void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, 
 	qsort(iproduct, nregistros, sizeof(Is), cmp_is);
 	qsort(ibrand, nregistros, sizeof(Is), cmp_is);
 	qsort(iprice, nregistros, sizeof(Isf), cmp_isf);
+}
+
+void atualiza_iprice(Isf *iprice, Produto produto, int nregistros){
+	Isf* elem;
+	int desconto;
+	float preco;
+
+	elem = iprice;
+	while(elem && strcmp(produto.pk, elem->pk) != 0){
+		elem++;
+	}
+	if (!elem)
+		return;
+	
+	sscanf(produto.desconto,"%d",&desconto);
+	sscanf(produto.preco,"%f",&preco);
+	preco = (preco *  (100-desconto))/100.0;
+	preco = preco * 100;
+	elem->price = ((int) preco)/ (float) 100 ;
 }
 
 // ========================= ROTINAS DE EXIBIÇÃO ============================
@@ -785,6 +856,24 @@ int getrrn(char *pk, Ip *iprimary, int nregistros){
 		return -1;
 	else
 		return reg->rrn;
+}
+
+int isValidDesconto(char *desconto){
+	if (strlen(desconto) != 3)
+		return 0;
+
+	if (desconto[0] != '0' && desconto[0] != '1')
+		return 0;
+	
+	if (desconto[0] == 0)
+		if (!isdigit(desconto[1]) || !isdigit(desconto[2]))
+			return 0;
+	
+	if (desconto[0] == 1)
+		if (desconto[1] != '0' || desconto[2] != '0')
+			return 0;
+
+	return 1;
 }
 
 // ========================= ROTINAS DE COMPARAÇÃO ==========================

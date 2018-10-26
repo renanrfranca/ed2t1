@@ -571,23 +571,27 @@ void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 				sprev--;
 			}
 
+			// encontra categoria
+			raux = bsearch(catNome, icategory, ncat, sizeof(Ir), cmp_str_ir);
+			if (!raux) {
+				printf(REGISTRO_N_ENCONTRADO);
+				break;
+			}
+
 			int numRetornos = 0;
 			// Varre indice processando registros da marca informada
 			do {
-				raux = bsearch(catNome, icategory, ncat, sizeof(Ir), cmp_str_ir);
-				if (raux) {
-					laux = raux->lista;
+				laux = raux->lista;
 
-					while (laux != NULL){
-						if (strcmp(saux->pk, laux->pk) == 0){
-							if (numRetornos > 0)
-								printf("\n");
-							numRetornos++;
-							rrn = getrrn(laux->pk, iprimary, nregistros);
-							exibir_registro(rrn, 0);
-						}
-						laux = laux->prox;
+				while (laux != NULL){
+					if (strcmp(saux->pk, laux->pk) == 0){
+						if (numRetornos > 0)
+							printf("\n");
+						numRetornos++;
+						rrn = getrrn(laux->pk, iprimary, nregistros);
+						exibir_registro(rrn, 0);
 					}
+					laux = laux->prox;
 				}
 				saux++;
 				if (saux){
@@ -595,8 +599,6 @@ void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 				} else {
 					i = -1;
 				}
-				if (i == 0)
-					printf("\n");					
 			} while (i == 0);
 
 			if (numRetornos == 0)

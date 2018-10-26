@@ -318,7 +318,8 @@ void criar_secundarios(Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int
 		strcpy(iprice[i].pk, p.pk); // Copia 
 		sscanf(p.desconto,"%d",&desconto);
 		sscanf(p.preco,"%f",&preco);
-		preco = preco *  (100-desconto);
+		preco = (preco *  (100-desconto))/100.0;
+		preco = preco * 100;
 		iprice[i].price = ((int) preco)/ (float) 100 ;
 
 		// icategory (ordena automáticamente)
@@ -436,7 +437,8 @@ void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, 
 	strcpy(iprice[nregistros-1].pk, novo.pk); // Copia PK pro índice
 	sscanf(novo.desconto,"%d",&desconto);
 	sscanf(novo.preco,"%f",&preco);
-	preco = preco *  (100-desconto);
+	preco = (preco *  (100-desconto))/100.0;
+	preco = preco * 100;
 	iprice[nregistros-1].price = ((int) preco)/ (float) 100 ;
 
 	// icategory (ordena automáticamente)

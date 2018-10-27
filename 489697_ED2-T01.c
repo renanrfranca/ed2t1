@@ -292,7 +292,10 @@ int main(){
 			case 7:
 				/*imprime o arquivo de dados*/
 				printf(INICIO_ARQUIVO);
-				printf("%s\n", ARQUIVO);
+				if (strlen(ARQUIVO) > 0)
+					printf("%s\n", ARQUIVO);
+				else 
+					printf("%s\n", ARQUIVO_VAZIO);
 			break;
 			case 8:
 				/*imprime os índices secundários*/

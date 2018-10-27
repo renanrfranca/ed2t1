@@ -149,7 +149,7 @@ void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, 
 
 void atualiza_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, Isf* iprice, int nregistros, int* ncat);
 
-void atualiza_iprice(Isf *iprice, Produto produto, int nregistros);
+void atualiza_iprice(Isf *iprice, int nregistros);
 
 void limpar_pk_categorias(char *pk, Ir *icategory, int *ncat);
 
@@ -160,7 +160,6 @@ void buscar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 
 // Rotina geral para listagem
 void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, int nregistros, int ncat);
-
 
 /* Rotina para impressao de indice secundario */
 void imprimirSecundario(Is* iproduct, Is* ibrand, Ir* icategory, Isf *iprice, int nregistros, int ncat);
@@ -454,7 +453,7 @@ int alterar(Ip *iprimary, Isf *iprice, int nregistros){
 	creg[1] = desconto[1];
 	creg[2] = desconto[2];
 
-	atualiza_iprice(iprice, recuperar_registro(pelem->rrn), nregistros);
+	atualiza_iprice(iprice, nregistros);
 	return 1;
 }
 
@@ -633,24 +632,23 @@ void atualiza_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory,
 	inserir_icategory(novo, icategory, ncat);
 }
 
-void atualiza_iprice(Isf *iprice, Produto produto, int nregistros){
-	Isf* elem;
+void atualiza_iprice(Isf *iprice, int nregistros){
+	int i;
+	Produto p;
 	int desconto;
 	float preco;
-
-	elem = iprice;
-	while(elem && strcmp(produto.pk, elem->pk) != 0){
-		elem++;
-	}
-	if (!elem)
-		return;
 	
-	sscanf(produto.desconto,"%d",&desconto);
-	sscanf(produto.preco,"%f",&preco);
-	preco = (preco *  (100-desconto))/100.0;
-	preco = preco * 100;
-	elem->price = ((int) preco)/ (float) 100;
+	for(i=0;i<nregistros;i++){
+		p = recuperar_registro(i); // Recupera dados do registro de rrn i e os copia pra variável p
 
+		// iprice
+		strcpy(iprice[i].pk, p.pk); // Copia 
+		sscanf(p.desconto,"%d",&desconto);
+		sscanf(p.preco,"%f",&preco);
+		preco = (preco *  (100-desconto))/100.0;
+		preco = preco * 100;
+		iprice[i].price = ((int) preco)/ (float) 100 ;
+	}
 	qsort(iprice, nregistros, sizeof(Isf), cmp_isf);
 }
 

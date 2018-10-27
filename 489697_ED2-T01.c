@@ -137,7 +137,8 @@ int remover(Ip *iprimary, int nregistros);
 
 // ================= ROTINAS DE MANIPULAÇÃO DE ÍNDICES ======================
 
-void inserir_primary(Produto p, Ip *indice, int nregistros);
+// insere produto no índice primário
+void inserir_primary(Produto p, Ip *indice, int *nregistros);
 
 void inserir_icategory(Produto p, Ir *icategory, int *ncat);
 
@@ -146,7 +147,11 @@ void inserir_produto_cat_ll(char* pk, Ir* categoria);
 
 void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, Isf* iprice, int nregistros, int* ncat);
 
+void atualiza_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, Isf* iprice, int nregistros, int* ncat);
+
 void atualiza_iprice(Isf *iprice, Produto produto, int nregistros);
+
+void limpar_pk_categorias(char *pk, Ir *icategory, int *ncat);
 
 // ========================= ROTINAS DE EXIBIÇÃO ============================
 
@@ -202,7 +207,7 @@ int main(){
 	int carregarArquivo = 0, nregistros = 0, ncat = 0;
 	char registro[TAM_REGISTRO];
 	Produto novo;
-
+	int nregAnterior;
 
 	scanf("%d%*c", &carregarArquivo); /* 1 (sim) | 0 (nao) */
 	if (carregarArquivo)
@@ -238,9 +243,13 @@ int main(){
 					break;
 				}
 				strcat(ARQUIVO, registro);
-				nregistros++;
-				inserir_primary(novo, iprimary, nregistros);
-				inserir_secundarios(novo, iproduct, ibrand, icategory, iprice, nregistros, &ncat);
+				nregAnterior = nregistros;
+				inserir_primary(novo, iprimary, &nregistros);
+				if (nregistros > nregAnterior){
+					inserir_secundarios(novo, iproduct, ibrand, icategory, iprice, nregistros, &ncat);
+				} else {
+					atualiza_secundarios(novo, iproduct, ibrand, icategory, iprice, nregistros, &ncat);
+				}
 			break;
 			case 2:
 				/*alterar desconto*/
@@ -313,7 +322,10 @@ void criar_iprimary(Ip *indice_primario, int* nregistros){
 	for(i=0;i<nreg;i++){
 		p = recuperar_registro(i); // Recupera dados do registro de rrn i e os copia pra variável p
 		strcpy(indice_primario[i].pk, p.pk); // Copia PK pro índice
-		indice_primario[i].rrn = i; // Salva rrn do registro no índice
+		if (p.nome[0] == '*' && p.nome[1] == '|')
+			indice_primario[i].rrn = -1;
+		else
+			indice_primario[i].rrn = i; // Salva rrn do registro no índice
 	}
 
 	qsort(indice_primario, nreg, sizeof(Ip), cmp_ip);
@@ -466,11 +478,27 @@ int remover(Ip *iprimary, int nregistros){
 
 // ================= ROTINAS DE MANIPULAÇÃO DE ÍNDICES ======================
 
-void inserir_primary(Produto p, Ip *indice, int nregistros){
-	strcpy(indice[nregistros-1].pk, p.pk); // Acrescenta nova chave primária
-	indice[nregistros-1].rrn = nregistros - 1; // no final do vetor
+// insere produto no índice primário
+void inserir_primary(Produto p, Ip *indice, int *nregistros){
+	int novo = 0;
 
-	qsort(indice, nregistros, sizeof(Ip), cmp_ip); // reordena
+	// Procura elemento já existente (Em caso de exclusão)
+	Ip *elem = bsearch(p.pk, indice, *nregistros, sizeof(Ip), cmp_str_ip);
+
+	// Se não achou usa um novo elemento
+	if (!elem){
+		elem = &indice[*nregistros];
+		strcpy(elem->pk, p.pk); // Acrescenta nova chave primária
+		novo = 1;
+	}
+
+	elem->rrn = *nregistros; // rrn = último registro
+
+	// Se for novo incrementa num de registros e reordena
+	if (novo){
+		(*nregistros)++; 
+		qsort(indice, *nregistros, sizeof(Ip), cmp_ip);
+	}
 }
 
 void inserir_icategory(Produto p, Ir *icategory, int *ncat){
@@ -558,6 +586,49 @@ void inserir_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, 
 	qsort(iprice, nregistros, sizeof(Isf), cmp_isf);
 }
 
+void atualiza_secundarios(Produto novo, Is* iproduct, Is* ibrand, Ir *icategory, Isf* iprice, int nregistros, int* ncat){
+	int i;
+	Is *saux;
+	Isf *faux;
+	Ir *raux;
+	ll *laux;
+	int desconto;
+	float preco;
+
+	// iproduct
+	for (i=0;i<nregistros;i++){
+		if (strcmp(novo.pk, iproduct[i].pk) == 0){
+			strcpy(iproduct[i].string, novo.nome);
+			break;
+		}
+	}
+
+	// ibrand
+	for (i=0;i<nregistros;i++){
+		if (strcmp(novo.pk, ibrand[i].pk) == 0){
+			strcpy(ibrand[i].string, novo.marca);
+			break;
+		}
+	}
+
+	// iprice
+	for (i=0;i<nregistros;i++){
+		if (strcmp(novo.pk, iprice[i].pk) == 0){
+			// iprice
+			sscanf(novo.desconto,"%d",&desconto);
+			sscanf(novo.preco,"%f",&preco);
+			preco = (preco *  (100-desconto))/100.0;
+			preco = preco * 100;
+			iprice[i].price = ((int) preco)/ (float) 100 ;
+			break;
+		}
+	}
+
+	// icategory
+	limpar_pk_categorias(novo.pk, icategory, ncat);
+	inserir_icategory(novo, icategory, ncat);
+}
+
 void atualiza_iprice(Isf *iprice, Produto produto, int nregistros){
 	Isf* elem;
 	int desconto;
@@ -577,6 +648,33 @@ void atualiza_iprice(Isf *iprice, Produto produto, int nregistros){
 	elem->price = ((int) preco)/ (float) 100;
 
 	qsort(iprice, nregistros, sizeof(Isf), cmp_isf);
+}
+
+void limpar_pk_categorias(char *pk, Ir *icategory, int *ncat){
+	int i;
+	ll *laux, *lant;
+
+	for (i=0;i<*ncat;i++){
+		laux = icategory[i].lista;
+		if (laux){
+			if (strcmp(laux->pk, pk) == 0){
+				icategory[i].lista = laux->prox;
+				free(laux);
+			} else {
+				lant = laux;
+				laux = laux->prox;
+				while (laux){
+					if (strcmp(laux->pk, pk) == 0){
+						lant->prox = laux->prox;
+						free(laux);
+						break;
+					}
+					lant = laux;
+					laux = laux->prox;
+				}
+			}
+		}
+	}
 }
 
 // ========================= ROTINAS DE EXIBIÇÃO ============================

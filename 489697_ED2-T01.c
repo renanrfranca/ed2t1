@@ -173,6 +173,9 @@ int exibir_registro(int rrn, char com_desconto);
 // Remove todas as categorias e os produtos relacionados
 void limpar_categorias(Ir *icategorias, int *ncat);
 
+// Libera todos os endereços alocados antes de finalizar o sistema
+void liberarMemoria(Ip *iprimary, Is *iproduct, Is *ibrand, Isf *iprice, Ir *icategory, int *ncat);
+
 // =========================== ROTINAS AUXILIARES ==========================
 
 // Recebe uma struct produto e gera o campo pk para ela
@@ -298,6 +301,7 @@ int main(){
 			break;
 			case 9:
 	      		/*Liberar memória e finalizar o programa */
+				liberarMemoria(iprimary, iproduct, ibrand, iprice, icategory, &ncat);
 				return 0;
 			break;
 			default:
@@ -1040,6 +1044,15 @@ void limpar_categorias(Ir *icategorias, int *ncat){
 	}
 
 	*ncat = 0;
+}
+
+void liberarMemoria(Ip *iprimary, Is *iproduct, Is *ibrand, Isf *iprice, Ir *icategory, int *ncat){
+	free(iprimary);
+	free(iproduct);
+	free(ibrand);
+	free(iprice);
+	limpar_categorias(icategory, ncat);
+	free(icategory);
 }
 
 // =========================== ROTINAS AUXILIARES ==========================

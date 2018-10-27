@@ -526,14 +526,14 @@ void inserir_icategory(Produto p, Ir *icategory, int *ncat){
 			inserir_produto_cat_ll(p.pk, &icategory[*ncat]); // insere pk do produto na lista
 			(*ncat)++; // incrementa o número de categorias
 		}
+		// Se aumentou o número de categorias
+		if (*ncat > nAnteriorCat){
+			// Reordena o vetor
+			qsort(icategory, *ncat, sizeof(Ir), cmp_ir);
+		}
 		tok = strtok(NULL, "|");
 	}
 
-	// Se aumentou o número de categorias
-	if (*ncat > nAnteriorCat){
-		// Reordena o vetor
-		qsort(icategory, *ncat, sizeof(Ir), cmp_ir);
-	}
 }
 
 // Insere o produto na lista ligada de uma das categorias existentes
@@ -877,11 +877,15 @@ void listar(Ip *iprimary, Is *iproduct, Is *ibrand, Ir *icategory, Isf *iprice, 
 		case 2:
 			scanf("%[^\n]%*c", catNome); // lê categoria a ser listada
 			Ir *cat = bsearch(catNome, icategory, ncat, sizeof(Ir), cmp_str_ir);
-			if (!cat)
+			if (!cat){
 				printf(REGISTRO_N_ENCONTRADO);
+				break;
+			}
 			ll *aux = cat->lista;
-			if (!aux)
+			if (!aux){
 				printf(REGISTRO_N_ENCONTRADO);
+				break;
+			}
 
 			nresultados = 0;
 			while (aux != NULL){

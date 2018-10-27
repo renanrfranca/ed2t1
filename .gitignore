@@ -52,7 +52,7 @@ Mkfile.old
 dkms.conf
 
 # Renan
-casos-teste/
+*.outa
 .vscode
 main
 test.in

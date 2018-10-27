@@ -1,4 +1,5 @@
 # Estruturas de dados 2 - Trabalho 1
+
 ## Organização de arquivos e indexação
 
 Trabalho executado de acordo com as definições do [PDF](../blob/master/ED2_T01.pdf).
